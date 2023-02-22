@@ -10,6 +10,8 @@ def read_spreadsheet(process):
     for row in sheet.iter_rows(min_row = 1, max_row = 1, values_only = True):
         header = row
 
+    # loop through each row in the sheet, create a dictionary for each row with the keys as the headers
+    # and the values as the corresponding cell value, and append the dictionary to the process list
     for row in sheet.iter_rows(min_row = 2, values_only=True):
         temp = {header[0]:row[0], header[1]:row[1], header[2]:row[2], header[3]:row[3]}
         process.append(temp)
@@ -20,6 +22,9 @@ def read_spreadsheet(process):
 def arrival_queue(process, process_queue, time_unit, algorithm):
     temp_queue = []
     temp_process_queue = process_queue
+    # loop through each arrival_dict in process list, check if the time_unit is equal to the arrival time
+    # if yes, set wait time to 0, sort the queue based on the specified algorithm and append the process
+    # to the end of the queue
     for arrival_dict in process:
         if time_unit == arrival_dict['Arrival Time']:
             arrival_dict['Wait'] = 0
@@ -31,10 +36,12 @@ def arrival_queue(process, process_queue, time_unit, algorithm):
 
 # sort the queue depending on inputed sort strategy
 def sort_queue(temp, sort_algorythm):
+    # create a dictionary of different sort algorithms and their corresponding sorting functions
     priority_list = {"FIFO" : sorted(temp, key=lambda item: (item['Arrival Time'], item['Process ID'])),
      "SJF": sorted(temp, key=lambda item: (item['Instruction Load'],item['Arrival Time'], item['Process ID'])), 
      "PRI": sorted(temp, key=lambda item: (item['Priority'],item['Arrival Time'], item['Process ID'])), 
      "RR": sorted(temp, key=lambda item: (item['Arrival Time'], item['Instruction Load'], item['Process ID']))}
+    # check the specified algorithm and sort the queue accordingly
     if sort_algorythm == 'FIFO':
         temp1 = priority_list[sort_algorythm]
         return temp1
@@ -116,7 +123,7 @@ def algorithm_switch(algorithm, quantum):
         quantum == 4
         return quantum
 
-
+# starts the simulation based on the user's selected sorting algorithm
 def main(temp):
     algorithm = temp
     process = []
@@ -127,19 +134,27 @@ def main(temp):
     time_unit = 0
     stats = []
     highest_arrvial_time = idle_state(process)
+
+    # check if the selected algorithm is RR
     if algorithm == "RR":
         this = 0
     else:
         this = -200
 
+    # main loop for the simulation
     while True:
         time_unit +=1
         process_queue = arrival_queue(process, process_queue, time_unit, algorithm)
+
+        # check if the selected algorithm is SJF or PRI
         if algorithm == "SJF" or algorithm == "PRI":
             process_queue = sort_queue(process_queue, algorithm)
 
+        # check if there are processes in the queue or CPU
         if len(process_queue) > 0 or len(cpu) > 0:
             cpu_processing(1, cpu, process_queue, stats)
+            
+            # check if the current process in CPU still has instructions to execute and quantum is not zero
             if cpu[0]['Instruction Load'] > 0 and quantum > this:
                 print_queue(cpu, time_unit, quantum,algorithm)
                 update_process_list(cpu)
@@ -148,6 +163,7 @@ def main(temp):
                 update_wait_list(process_queue)
                 print_wait(process_queue)
                         
+            # check if the current process in CPU has finished its instructions or quantum is zero
             elif cpu[0]['Instruction Load'] == 0:
                 print_queue(cpu, time_unit, quantum, algorithm)
                 update_process_list(cpu)
@@ -156,6 +172,7 @@ def main(temp):
                 update_wait_list(process_queue)
                 print_wait(process_queue)
                 
+            # check if the selected algorithm is RR and quantum is zero
             elif algorithm == "RR" and cpu[0]['Instruction Load'] > 0 and quantum == 0:
                 print_queue(cpu, time_unit, quantum, algorithm)
                 cpu_processing(2, cpu, process_queue, stats)
@@ -164,24 +181,25 @@ def main(temp):
                 update_wait_list(process_queue)
                 print_wait(process_queue) 
 
+        # check if there are no processes in the queue and current time is less than the highest arrival time
         elif len(process_queue) == 0 and highest_arrvial_time > time_unit:
             print(f'Time Unit {time_unit}: CPU is idle.')
             print("\n")
 
+        # check if all processes have been executed
         elif len(process_queue) == 0 and time_unit > highest_arrvial_time:
             print("All processes have executed. End of simulation")
             break
 
+        # check if there's an unexpected error
         else:
             print("OBS! Something went wrong that we didn't account for")
 
-
-
+# prompt the user for the selected sorting algorithm
 print('Type your sorting algorithm: "FIFO", "SJF", "PRI", "RR"')
 temp = str(input()).upper()
 print(f"You choose: {temp}")
 print("\n")
+
+# start the simulation based on the user's selected sorting algorithm
 main(temp)
-
-
-
